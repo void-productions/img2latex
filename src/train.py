@@ -7,12 +7,19 @@ import sys
 import os
 
 def usage():
-	print("main.py <img-file>")
+	print("train.py <net>")
 	sys.exit()
 
 def main():
 	if len(sys.argv) != 1:
 		usage()
+
+	net = sys.argv[1]
+	if net == "classifier":
+		classifier.train()
+	else:
+		print("unknown net")
+	
 
 if __name__ == "__main__":
 	main()
