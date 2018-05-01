@@ -4,6 +4,7 @@ import sys
 sys.path.append("src")
 
 import classifier
+from constants import CLASSIFIER_INPUT_SHAPE
 import extract
 import os
 import misc
@@ -13,5 +14,5 @@ if len(sys.argv) != 2:
 	sys.exit()
 
 classifierdir = os.path.join(misc.resdir(), "classifier")
-dataset = extract.extract_yaml_dataset(os.path.join(classifierdir, sys.argv[1]), (50, 50, 3))
+dataset = extract.extract_yaml_dataset(os.path.join(classifierdir, sys.argv[1]), (*CLASSIFIER_INPUT_SHAPE, 3))
 classifier.train(*dataset)

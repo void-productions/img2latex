@@ -2,11 +2,10 @@ import cv2
 import numpy as np
 import os
 
+from constants import CHARS_REV
+
 from ruamel.yaml import YAML
 from ruamel.yaml.scanner import ScannerError
-
-import data
-
 
 IMAGE_DIRECTORY = "images"
 LABEL_FILE = "labels.yaml"
@@ -48,7 +47,7 @@ def image_files_to_array(image_files, number_of_images, image_shape):
 	else:
 		raise ValueError("image_shape[2] (depth) has an invalid value: {}".format(depth))
 
-	images = np.empty((number_of_images, height * width * depth))
+	images = np.empty((number_of_images, height * width * depth), dtype=np.float32)
 
 	for index, path in enumerate(image_files):
 		if not os.path.isfile(path):
@@ -115,7 +114,7 @@ def extract_yaml_dataset(path, image_shape):
 
 	number_of_images = len(description)
 
-	labels = np.array(list(map(lambda x: data.char_to_id(x), description.values())))
+	labels = np.array(list(map(lambda x: CHARS_REV[x], description.values())))
 
 	image_files = map(lambda x: os.path.join(image_directory, x) + IMAGE_ENDING,
 			description.keys())
