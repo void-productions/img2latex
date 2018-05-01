@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 
+import sys
+sys.path.append("src")
+
 import classifier
 import extract
-import sys
 import os
 import misc
 
