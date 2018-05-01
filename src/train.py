@@ -1,25 +1,15 @@
 #!/usr/bin/env python3
 
-import splitter, classifier, assembler
-
-import tensorflow as tf
+import classifier
+import extract
 import sys
 import os
+import misc
 
-def usage():
-	print("train.py <net>")
+if len(sys.argv) != 2:
+	print("requires one <dataset> argument")
 	sys.exit()
 
-def main():
-	if len(sys.argv) != 1:
-		usage()
-
-	net = sys.argv[1]
-	if net == "classifier":
-		classifier.train()
-	else:
-		print("unknown net")
-	
-
-if __name__ == "__main__":
-	main()
+classifierdir = os.path.join(misc.resdir(), "classifier")
+dataset = extract.extract_yaml_dataset(os.path.join(classifierdir, sys.argv[1]), (50, 50, 3))
+classifier.train(*dataset)
