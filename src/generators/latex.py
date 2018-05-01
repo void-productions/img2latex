@@ -20,6 +20,7 @@ def generate_latex_file(x, filename, fontsize=12, dpi=300, font="DejaVu Sans"):
 		f.write(buffer_.getvalue())
 
 dirpath = os.path.dirname(os.path.realpath(__file__)) + "/../../res/classifier/latex/"
+images_dirpath = os.path.join(dirpath, "images")
 
 d = dict()
 
@@ -27,8 +28,10 @@ for x in array:
 	for font in fonts:
 		if not os.path.exists(dirpath):
 			os.mkdir(dirpath)
+		if not os.path.exists(images_dirpath):
+			os.mkdir(images_dirpath)
 		f = "-".join(["example", x, font.replace(" ", "-")])
-		filename = dirpath + f
+		filename = os.path.join(images_dirpath, f)
 		d[f] = x
 		if not os.path.exists(filename):
 			generate_latex_file(x, filename, font=font)
