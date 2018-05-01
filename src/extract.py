@@ -5,7 +5,7 @@ import os
 from ruamel.yaml import YAML
 from ruamel.yaml.scanner import ScannerError
 
-#from data import 
+import data
 
 
 IMAGE_DIRECTORY = "images"
@@ -115,7 +115,7 @@ def extract_yaml_dataset(path, image_shape):
 
 	number_of_images = len(description)
 
-	labels = list(description.values())
+	labels = np.array(list(map(lambda x: data.char_to_id(x), description.values())))
 
 	image_files = map(lambda x: os.path.join(image_directory, x) + IMAGE_ENDING,
 			description.keys())
@@ -123,4 +123,3 @@ def extract_yaml_dataset(path, image_shape):
 	x_data = image_files_to_array(image_files, number_of_images, image_shape)
 
 	return (x_data, labels)
-
