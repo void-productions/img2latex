@@ -9,21 +9,22 @@ KERNEL_SIZE = (10, 10)
 POOL_RADIUS = 2
 NO_LABELS = 2
 BATCH_SIZE = 1
+IMAGE_SIZE = (50, 50)
 
 def model_fn(features, labels, mode):
 	l1 = tf.reshape(features["x"], [-1, INPUT_SHAPE[0], INPUT_SHAPE[1], 3])
-    l2 = tf.layers.conv2d(inputs = l1, filters = NO_FILTERS, kernel_size = KERNEL_SIZE)
+	l2 = tf.layers.conv2d(inputs = l1, filters = NO_FILTERS, kernel_size = KERNEL_SIZE)
 	l3 = tf.layers.max_pooling2d(inputs = l2, poolsize=[POOL_RADIUS]*2, strides=POOL_RADIUS)
-    l4 = tf.layers.conv2d(inputs = l3, filters = NO_FILTERS, kernel_size = KERNEL_SIZE)
+	l4 = tf.layers.conv2d(inputs = l3, filters = NO_FILTERS, kernel_size = KERNEL_SIZE)
 	l5 = tf.layers.dense(inputs = l4, units=100, activation=tf.nn.relu)
 	l6 = tf.layers.dense(inputs = l5, units=1, activation=tf.nn.relu)
-    out = l6
+	out = l6
 
-    assert(out.shape == (BATCH_SIZE, NO_LABELS))
+	assert(out.shape == (BATCH_SIZE, NO_LABELS))
 	assert(labels.shape == (BATCH_SIZE,))
 
 	predictions = {
-        "classes": tf.argmax(input=out, axis=1),
+		"classes": tf.argmax(input=out, axis=1),
 		"probabilities": tf.nn.softmax(out, name="softmax_tensor"),
 	}
 
@@ -43,13 +44,29 @@ def model_fn(features, labels, mode):
 			mode=mode, loss=loss
 		)
 
-def make_estimator():
-    return tf.estimator.Estimator(model_fn, model_dir=MODEL_DIR)
+est = tf.estimator.Estimator(model_fn, model_dir=MODEL_DIR)
 
 def predict(xdata):
-    est = make_estimator()
-    # TODO
+	assert(xdata.shape == (BATCH_SIZE, IMAGE_SIZE[0], IMAGE_SIZE[1]))
+
+	predict_input_fn = tf.estimator.inputs.numpy_input_fn(
+		x={"x": xdata}
+	)
+
+	return est.predict(
+		input_fn=predict_input_fn,
+	)
 
 def train(xdata, ydata):
-    est = make_estimator()
-    # TODO
+	train_input_fn = tf.estimator.inputs.numpy_input_fn(
+		x={"x": xdata},
+		y=ydata,
+		batch_size=BATCH_SIZE,
+		num_epochs=None,
+		shuffle=True
+	)
+
+	est.train(
+		input_fn=train_input_fn,
+		steps=2000
+	)
