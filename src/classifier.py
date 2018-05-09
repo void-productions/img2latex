@@ -11,38 +11,69 @@ POOL_RADIUS = 2
 BATCH_SIZE = 1
 
 def model_fn(features, labels, mode):
-	l1 = tf.reshape(features["x"], [-1, *CLASSIFIER_INPUT_SHAPE, 3])
-	l2 = tf.layers.conv2d(inputs = l1, filters = NO_FILTERS, kernel_size = KERNEL_SIZE)
-	l2_out_shape = (
+	# input layer
+	input_layer = tf.reshape(features["x"], [-1, *CLASSIFIER_INPUT_SHAPE, 3])
+
+	# 1 convolutional
+	convolutional_1 = tf.layers.conv2d(inputs = input_layer, filters = NO_FILTERS, kernel_size = KERNEL_SIZE)
+
+	convolutional_1_out_shape = (
+		-1,
 		CLASSIFIER_INPUT_SHAPE[0] - KERNEL_SIZE[0] + 1,
 		CLASSIFIER_INPUT_SHAPE[1] - KERNEL_SIZE[1] + 1,
+		NO_FILTERS
 	)
-	assert(l2.shape == (BATCH_SIZE, *l2_out_shape, NO_FILTERS))
-	l3 = tf.layers.max_pooling2d(inputs = l2, pool_size=[POOL_RADIUS]*2, strides=POOL_RADIUS)
-	l3_out_shape = (
-		np.floor(l2_out_shape[0]/POOL_RADIUS),
-		np.floor(l2_out_shape[1]/POOL_RADIUS)
-	)
-	assert(l3.shape == (BATCH_SIZE, *l3_out_shape, NO_FILTERS))
-	l4 = tf.layers.conv2d(inputs = l3, filters = NO_FILTERS, kernel_size = KERNEL_SIZE)
-	l5 = tf.reshape(l4, shape=[BATCH_SIZE, -1])
-	l6 = tf.layers.dense(inputs = l5, units=100, activation=tf.nn.relu)
-	l7 = tf.layers.dense(inputs = l6, units=len(CHARS), activation=tf.nn.relu)
-	out = l7
 
-	assert(out.shape == (BATCH_SIZE, len(CHARS)))
-	assert(labels.shape == (BATCH_SIZE, len(CHARS)))
+	assert(convolutional_1.shape[1:] == convolutional_1_out_shape[1:])
+
+	# 2 pooling
+	pooling_2 = tf.layers.max_pooling2d(inputs = convolutional_1, pool_size=[POOL_RADIUS]*2, strides=POOL_RADIUS)
+	pooling_2_out_shape = (
+		-1,
+		int(np.floor(convolutional_1_out_shape[1]/POOL_RADIUS)),
+		int(np.floor(convolutional_1_out_shape[2]/POOL_RADIUS)),
+		NO_FILTERS
+	)
+
+	assert(pooling_2.shape[1:] == pooling_2_out_shape[1:])
+
+	# 3 convolutional
+	convolutional_3 = tf.layers.conv2d(inputs = pooling_2, filters = NO_FILTERS, kernel_size = KERNEL_SIZE)
+
+	convolutional_3_out_shape = (
+		-1,
+		int(np.floor(pooling_2_out_shape[1] - KERNEL_SIZE[0] + 1)),
+		int(np.floor(pooling_2_out_shape[2] - KERNEL_SIZE[1] + 1)),
+		NO_FILTERS
+	)
+
+	assert(convolutional_3.shape[1:] == convolutional_3_out_shape[1:])
+
+	# 4 flat
+	flat_4 = tf.reshape(convolutional_3, shape=[-1, np.prod(convolutional_3_out_shape[1:])])
+
+	# 5 dense
+	dense_5 = tf.layers.dense(inputs = flat_4, units=100, activation=tf.nn.relu)
+
+	# 6 dense
+	dense_6 = tf.layers.dense(inputs = dense_5, units=len(CHARS), activation=tf.nn.relu)
+	out = dense_6
+
+	assert(out.shape[1:] == (len(CHARS),))
+	if labels is not None:
+		assert(labels.shape[1:] == (len(CHARS),))
 
 	predictions = {
 		"classes": tf.argmax(input=out, axis=1),
 		"probabilities": tf.nn.softmax(out, name="softmax_tensor"),
 	}
 
-	loss = tf.reduce_sum(tf.square(out - labels))
-
 	if mode == tf.estimator.ModeKeys.PREDICT:
 		return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
-	elif mode == tf.estimator.ModeKeys.TRAIN:
+
+	loss = tf.reduce_sum(tf.square(out - labels))
+
+	if mode == tf.estimator.ModeKeys.TRAIN:
 		optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.0002)
 		train_op = optimizer.minimize(
 			loss=loss,
@@ -57,10 +88,9 @@ def model_fn(features, labels, mode):
 est = tf.estimator.Estimator(model_fn, model_dir=MODEL_DIR)
 
 def predict(xdata):
-	assert(xdata.shape == (BATCH_SIZE, *CLASSIFIER_INPUT_SHAPE))
-
 	predict_input_fn = tf.estimator.inputs.numpy_input_fn(
-		x={"x": xdata}
+		x={"x": xdata},
+        shuffle=False
 	)
 
 	return est.predict(
