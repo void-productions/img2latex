@@ -21,4 +21,4 @@ gen = classifier.predict(dataset[0])
 for i, k in enumerate(gen):
 	prediction = CHARS[k["classes"]]
 	expected = CHARS[dataset[1][i]]
-	print("predicted: {}, expected: {}".format(prediction, expected))
+	print("predicted: {}, expected: {}, ({})".format(prediction, expected, k['probabilities']))
