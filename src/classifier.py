@@ -56,7 +56,7 @@ def model_fn(features, labels, mode):
 	dense_5 = tf.layers.dense(inputs = flat_4, units=100, activation=tf.nn.relu)
 
 	# 6 dense
-	dense_6 = tf.layers.dense(inputs = dense_5, units=len(CHARS), activation=tf.nn.relu)
+	dense_6 = tf.layers.dense(inputs = dense_5, units=len(CHARS), activation=tf.nn.sigmoid)
 	out = dense_6
 
 	assert(out.shape[1:] == (len(CHARS),))

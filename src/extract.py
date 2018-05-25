@@ -120,5 +120,6 @@ def extract_yaml_dataset(path, image_shape):
 			description.keys())
 
 	x_data = image_files_to_array(image_files, number_of_images, image_shape)
+	x_data = ((x_data * 2) / np.max(x_data)) - 1
 
 	return (x_data, labels)

@@ -16,9 +16,10 @@ if len(sys.argv) != 2:
 
 classifierdir = os.path.join(misc.resdir(), "classifier")
 dataset = extract.extract_yaml_dataset(os.path.join(classifierdir, sys.argv[1]), (*CLASSIFIER_INPUT_SHAPE, 3))
+
 gen = classifier.predict(dataset[0])
 
 for i, k in enumerate(gen):
 	prediction = CHARS[k["classes"]]
 	expected = CHARS[dataset[1][i]]
-	print("predicted: {}, expected: {}".format(prediction, expected))
+	print("predicted: {}, expected: {}, propabilities: {}".format(prediction, expected, k["probabilities"]))
