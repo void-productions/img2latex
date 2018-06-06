@@ -4,11 +4,13 @@ import tensorflow as tf
 import numpy as np
 from constants import CLASSIFIER_INPUT_SHAPE, CHARS
 
+
 MODEL_DIR = "model/classifier"
 NO_FILTERS = 11
 KERNEL_SIZE = (10, 10)
 POOL_RADIUS = 2
 BATCH_SIZE = 1
+
 
 def model_fn(features, labels, mode):
 	# input layer
@@ -85,9 +87,21 @@ def model_fn(features, labels, mode):
 			mode=mode, loss=loss
 		)
 
+
 est = tf.estimator.Estimator(model_fn, model_dir=MODEL_DIR)
 
+
 def predict(xdata):
+    """
+    :param xdata: np.ndarray of shape (number_of_samples, height, width, depth)
+			where number_of_samples is the number of images
+			where height/width is the height/width of the images
+			where depth is the colordepth of the image
+    :type xdata: np.ndarray
+	:return: np.ndarray of shape (number_of_samples,), named ydata
+		for n in range(number_of_samples): CHARS[ydata[n]] == label of xdata[n]
+	:rtype: np.ndarray
+    """
 	predict_input_fn = tf.estimator.inputs.numpy_input_fn(
 		x={"x": xdata},
         shuffle=False
@@ -97,7 +111,19 @@ def predict(xdata):
 		input_fn=predict_input_fn,
 	)
 
+
 def train(xdata, ydata):
+	"""
+	:param xdata: np.ndarray of shape (number_of_samples, height, width, depth)
+		where number_of_samples is the number of images
+		where height/width is the height/width of the images
+		where depth is the colordepth of the image
+	:type xdata: np.ndarray
+	:param ydata: np.ndarray of shape (number_of_samples,)
+		for n in range(number_of_samples): CHARS[ydata[n]] == label of xdata[n]
+	:type ydata: np.ndarray
+	"""
+
 	y = np.zeros((len(ydata), len(CHARS)), dtype=np.float32)
 	for i in range(len(ydata)):
 		y[i,ydata[i]] = 1
