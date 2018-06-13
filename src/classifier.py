@@ -2,7 +2,7 @@
 
 import tensorflow as tf
 import numpy as np
-from constants import CLASSIFIER_INPUT_SHAPE, CHARS
+from constants import CLASSIFIER_IMAGE_SIZE, CHARS
 
 
 MODEL_DIR = "model/classifier"
@@ -14,15 +14,15 @@ BATCH_SIZE = 1
 
 def model_fn(features, labels, mode):
 	# input layer
-	input_layer = tf.reshape(features["x"], [-1, *CLASSIFIER_INPUT_SHAPE, 3])
+	input_layer = tf.reshape(features["x"], [-1, *CLASSIFIER_IMAGE_SIZE, 3])
 
 	# 1 convolutional
 	convolutional_1 = tf.layers.conv2d(inputs = input_layer, filters = NO_FILTERS, kernel_size = KERNEL_SIZE)
 
 	convolutional_1_out_shape = (
 		-1,
-		CLASSIFIER_INPUT_SHAPE[0] - KERNEL_SIZE[0] + 1,
-		CLASSIFIER_INPUT_SHAPE[1] - KERNEL_SIZE[1] + 1,
+		CLASSIFIER_IMAGE_SIZE[0] - KERNEL_SIZE[0] + 1,
+		CLASSIFIER_IMAGE_SIZE[1] - KERNEL_SIZE[1] + 1,
 		NO_FILTERS
 	)
 
@@ -92,37 +92,41 @@ est = tf.estimator.Estimator(model_fn, model_dir=MODEL_DIR)
 
 
 def predict(xdata):
-    """
-    :param xdata: np.ndarray of shape (number_of_samples, height, width, depth)
+	"""
+	:param xdata: np.ndarray of shape (number_of_samples, height, width, depth)
 			where number_of_samples is the number of images
-			where height/width is the height/width of the images
+			where height/width is the height/width of the images, (height, width) requires to be CLASSIFIER_IMAGE_SIZE
 			where depth is the colordepth of the image
-    :type xdata: np.ndarray
+	:type xdata: np.ndarray
 	:return: np.ndarray of shape (number_of_samples,), named ydata
 		for n in range(number_of_samples): CHARS[ydata[n]] == label of xdata[n]
 	:rtype: np.ndarray
-    """
+	"""
+
+	assert(xdata.shape[1:3] == CLASSIFIER_IMAGE_SIZE)
+
 	predict_input_fn = tf.estimator.inputs.numpy_input_fn(
 		x={"x": xdata},
-        shuffle=False
+		shuffle=False
 	)
 
 	return est.predict(
 		input_fn=predict_input_fn,
 	)
 
-
 def train(xdata, ydata):
 	"""
 	:param xdata: np.ndarray of shape (number_of_samples, height, width, depth)
 		where number_of_samples is the number of images
-		where height/width is the height/width of the images
+		where height/width is the height/width of the images, (height, width) requires to be CLASSIFIER_IMAGE_SIZE
 		where depth is the colordepth of the image
 	:type xdata: np.ndarray
 	:param ydata: np.ndarray of shape (number_of_samples,)
 		for n in range(number_of_samples): CHARS[ydata[n]] == label of xdata[n]
 	:type ydata: np.ndarray
 	"""
+
+	assert(xdata.shape[1:3] == CLASSIFIER_IMAGE_SIZE)
 
 	y = np.zeros((len(ydata), len(CHARS)), dtype=np.float32)
 	for i in range(len(ydata)):

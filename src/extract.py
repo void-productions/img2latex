@@ -47,7 +47,7 @@ def image_files_to_array(image_files, number_of_images, image_shape):
 	else:
 		raise ValueError("image_shape[2] (depth) has an invalid value: {}".format(depth))
 
-	images = np.empty((number_of_images, height * width * depth), dtype=np.float32)
+	images = np.empty((number_of_images, height, width, depth), dtype=np.float32)
 
 	for index, path in enumerate(image_files):
 		if not os.path.isfile(path):
@@ -55,7 +55,7 @@ def image_files_to_array(image_files, number_of_images, image_shape):
 		img = cv2.imread(path, color_mode)
 		img = rectify_image(img)
 		img = cv2.resize(img, dsize=image_shape[:2])
-		images[index] = np.reshape(img, height * width * depth)
+		images[index] = np.reshape(img, (height, width, depth))
 
 	return images
 
