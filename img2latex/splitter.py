@@ -1,159 +1,136 @@
-#  Copyright 2016 The TensorFlow Authors. All Rights Reserved.
-#
-#  Licensed under the Apache License, Version 2.0 (the "License");
-#  you may not use this file except in compliance with the License.
-#  You may obtain a copy of the License at
-#
-#   http://www.apache.org/licenses/LICENSE-2.0
-#
-#  Unless required by applicable law or agreed to in writing, software
-#  distributed under the License is distributed on an "AS IS" BASIS,
-#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#  See the License for the specific language governing permissions and
-#  limitations under the License.
-"""Convolutional Neural Network Estimator for MNIST, built with tf.layers."""
+#!/usr/bin/env python3
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-import numpy as np
 import tensorflow as tf
+import numpy as np
+from constants import SPLITTER_IMAGE_SIZE
 
-tf.logging.set_verbosity(tf.logging.INFO)
-
-
-def cnn_model_fn(features, labels, mode):
-  """Model function for CNN."""
-  # Input Layer
-  # Reshape X to 4-D tensor: [batch_size, width, height, channels]
-  # MNIST images are 28x28 pixels, and have one color channel
-  input_layer = tf.reshape(features["x"], [-1, 28, 28, 1])
-
-  # Convolutional Layer #1
-  # Computes 32 features using a 5x5 filter with ReLU activation.
-  # Padding is added to preserve width and height.
-  # Input Tensor Shape: [batch_size, 28, 28, 1]
-  # Output Tensor Shape: [batch_size, 28, 28, 32]
-  conv1 = tf.layers.conv2d(
-      inputs=input_layer,
-      filters=32,
-      kernel_size=[5, 5],
-      padding="same",
-      activation=tf.nn.relu)
-
-  # Pooling Layer #1
-  # First max pooling layer with a 2x2 filter and stride of 2
-  # Input Tensor Shape: [batch_size, 28, 28, 32]
-  # Output Tensor Shape: [batch_size, 14, 14, 32]
-  pool1 = tf.layers.max_pooling2d(inputs=conv1, pool_size=[2, 2], strides=2)
-
-  # Convolutional Layer #2
-  # Computes 64 features using a 5x5 filter.
-  # Padding is added to preserve width and height.
-  # Input Tensor Shape: [batch_size, 14, 14, 32]
-  # Output Tensor Shape: [batch_size, 14, 14, 64]
-  conv2 = tf.layers.conv2d(
-      inputs=pool1,
-      filters=64,
-      kernel_size=[5, 5],
-      padding="same",
-      activation=tf.nn.relu)
-
-  # Pooling Layer #2
-  # Second max pooling layer with a 2x2 filter and stride of 2
-  # Input Tensor Shape: [batch_size, 14, 14, 64]
-  # Output Tensor Shape: [batch_size, 7, 7, 64]
-  pool2 = tf.layers.max_pooling2d(inputs=conv2, pool_size=[2, 2], strides=2)
-
-  # Flatten tensor into a batch of vectors
-  # Input Tensor Shape: [batch_size, 7, 7, 64]
-  # Output Tensor Shape: [batch_size, 7 * 7 * 64]
-  pool2_flat = tf.reshape(pool2, [-1, 7 * 7 * 64])
-
-  # Dense Layer
-  # Densely connected layer with 1024 neurons
-  # Input Tensor Shape: [batch_size, 7 * 7 * 64]
-  # Output Tensor Shape: [batch_size, 1024]
-  dense = tf.layers.dense(inputs=pool2_flat, units=1024, activation=tf.nn.relu)
-
-  # Add dropout operation; 0.6 probability that element will be kept
-  dropout = tf.layers.dropout(
-      inputs=dense, rate=0.4, training=mode == tf.estimator.ModeKeys.TRAIN)
-
-  # Logits layer
-  # Input Tensor Shape: [batch_size, 1024]
-  # Output Tensor Shape: [batch_size, 10]
-  logits = tf.layers.dense(inputs=dropout, units=10)
-
-  predictions = {
-      # Generate predictions (for PREDICT and EVAL mode)
-      "classes": tf.argmax(input=logits, axis=1),
-      # Add `softmax_tensor` to the graph. It is used for PREDICT and by the
-      # `logging_hook`.
-      "probabilities": tf.nn.softmax(logits, name="softmax_tensor")
-  }
-  if mode == tf.estimator.ModeKeys.PREDICT:
-    return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
-
-  # Calculate Loss (for both TRAIN and EVAL modes)
-  loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
-
-  # Configure the Training Op (for TRAIN mode)
-  if mode == tf.estimator.ModeKeys.TRAIN:
-    optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.001)
-    train_op = optimizer.minimize(
-        loss=loss,
-        global_step=tf.train.get_global_step())
-    return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
-
-  # Add evaluation metrics (for EVAL mode)
-  eval_metric_ops = {
-      "accuracy": tf.metrics.accuracy(
-          labels=labels, predictions=predictions["classes"])}
-  return tf.estimator.EstimatorSpec(
-      mode=mode, loss=loss, eval_metric_ops=eval_metric_ops)
+MODEL_DIR = "model/splitter"
+NO_FILTERS = 11
+KERNEL_SIZE = (10, 10)
+POOL_RADIUS = 2
+BATCH_SIZE = 1
 
 
-def main(unused_argv):
-  # Load training and eval data
-  mnist = tf.contrib.learn.datasets.load_dataset("mnist")
-  train_data = mnist.train.images  # Returns np.array
-  train_labels = np.asarray(mnist.train.labels, dtype=np.int32)
-  eval_data = mnist.test.images  # Returns np.array
-  eval_labels = np.asarray(mnist.test.labels, dtype=np.int32)
+def model_fn(features, labels, mode):
+	# input layer
+	input_layer = tf.reshape(features["x"], [-1, *SPLITTER_IMAGE_SIZE, 3])
 
-  # Create the Estimator
-  mnist_classifier = tf.estimator.Estimator(
-      model_fn=cnn_model_fn, model_dir="/tmp/mnist_convnet_model")
+	# 1 convolutional
+	convolutional_1 = tf.layers.conv2d(inputs = input_layer, filters = NO_FILTERS, kernel_size = KERNEL_SIZE)
 
-  # Set up logging for predictions
-  # Log the values in the "Softmax" tensor with label "probabilities"
-  tensors_to_log = {"probabilities": "softmax_tensor"}
-  logging_hook = tf.train.LoggingTensorHook(
-      tensors=tensors_to_log, every_n_iter=50)
+	convolutional_1_out_shape = (
+		-1,
+		SPLITTER_INPUT_SHAPE[0] - KERNEL_SIZE[0] + 1,
+		SPLITTER_INPUT_SHAPE[1] - KERNEL_SIZE[1] + 1,
+		NO_FILTERS
+	)
 
-  # Train the model
-  train_input_fn = tf.estimator.inputs.numpy_input_fn(
-      x={"x": train_data},
-      y=train_labels,
-      batch_size=100,
-      num_epochs=None,
-      shuffle=True)
-  mnist_classifier.train(
-      input_fn=train_input_fn,
-      steps=20000,
-      hooks=[logging_hook])
+	assert(convolutional_1.shape[1:] == convolutional_1_out_shape[1:])
 
-  # Evaluate the model and print results
-  eval_input_fn = tf.estimator.inputs.numpy_input_fn(
-      x={"x": eval_data},
-      y=eval_labels,
-      num_epochs=1,
-      shuffle=False)
-  eval_results = mnist_classifier.evaluate(input_fn=eval_input_fn)
-  print(eval_results)
+	# 2 pooling
+	pooling_2 = tf.layers.max_pooling2d(inputs = convolutional_1, pool_size=[POOL_RADIUS]*2, strides=POOL_RADIUS)
+	pooling_2_out_shape = (
+		-1,
+		int(np.floor(convolutional_1_out_shape[1]/POOL_RADIUS)),
+		int(np.floor(convolutional_1_out_shape[2]/POOL_RADIUS)),
+		NO_FILTERS
+	)
+
+	assert(pooling_2.shape[1:] == pooling_2_out_shape[1:])
+
+	# 3 convolutional
+	convolutional_3 = tf.layers.conv2d(inputs = pooling_2, filters = NO_FILTERS, kernel_size = KERNEL_SIZE)
+
+	convolutional_3_out_shape = (
+		-1,
+		int(np.floor(pooling_2_out_shape[1] - KERNEL_SIZE[0] + 1)),
+		int(np.floor(pooling_2_out_shape[2] - KERNEL_SIZE[1] + 1)),
+		NO_FILTERS
+	)
+
+	assert(convolutional_3.shape[1:] == convolutional_3_out_shape[1:])
+
+	# 4 flat
+	flat_4 = tf.reshape(convolutional_3, shape=[-1, np.prod(convolutional_3_out_shape[1:])])
+
+	# 5 dense
+	dense_5 = tf.layers.dense(inputs = flat_4, units=1000, activation=tf.nn.relu)
+
+	# 6 dense
+	dense_6 = tf.layers.dense(inputs = dense_5, units=np.prod(SPLITTER_IMAGE_SIZE), activation=tf.nn.sigmoid)
+	out = dense_6
+
+	assert(out.shape[1:] == SPLITTER_IMAGE_SIZE) 
+	if labels is not None:
+		assert(labels.shape[1:] == SPLITTER_IMAGE_SIZE)
+
+	predictions = {
+		"classes": tf.argmax(input=out, axis=1),
+		"probabilities": tf.nn.softmax(out, name="softmax_tensor"),
+	}
+
+	if mode == tf.estimator.ModeKeys.PREDICT:
+		return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
+
+	loss = tf.reduce_sum(tf.square(out - labels))
+
+	if mode == tf.estimator.ModeKeys.TRAIN:
+		optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.0002)
+		train_op = optimizer.minimize(
+			loss=loss,
+			global_step=tf.train.get_global_step()
+		)
+		return tf.estimator.EstimatorSpec(mode=mode, train_op=train_op, loss=loss)
+	elif mode == tf.estimator.ModeKeys.EVAL:
+		return tf.estimator.EstimatorSpec(
+			mode=mode, loss=loss
+		)
 
 
-if __name__ == "__main__":
-  tf.app.run()
+est = tf.estimator.Estimator(model_fn, model_dir=MODEL_DIR)
+
+
+def predict(xdata):
+    """
+    :param xdata: np.ndarray of shape (number_of_samples, height, width, depth)
+			where number_of_samples is the number of images
+			where height/width is the height/width of the images, (height, width) requires to be SPLITTER_IMAGE_SIZE
+			where depth is the colordepth of the image
+    :type xdata: np.ndarray
+	:return: np.ndarray of shape (number_of_samples, height, width), named ydata
+		this represents for every pixel of every image, whether it is part of a letter '1', or if it is between letters / not related to any letter '0'
+	:rtype: np.ndarray
+    """
+	predict_input_fn = tf.estimator.inputs.numpy_input_fn(
+		x={"x": xdata},
+        shuffle=False
+	)
+
+	return est.predict(
+		input_fn=predict_input_fn,
+	)
+
+def train(xdata, ydata):
+	"""
+	:param xdata: np.ndarray of shape (number_of_samples, height, width, depth)
+		where number_of_samples is the number of images
+		where height/width is the height/width of the images, (height, width) requires to be SPLITTER_IMAGE_SIZE
+		where depth is the colordepth of the image
+	:type xdata: np.ndarray
+	:param ydata: np.ndarray of shape (number_of_samples, height, width)
+		this represents for every pixel of every image, whether it is part of a letter '1', or if it is between letters / not related to any letter '0'
+	:type ydata: np.ndarray
+	"""
+
+	train_input_fn = tf.estimator.inputs.numpy_input_fn(
+		x={"x": xdata},
+		y=ydata,
+		batch_size=BATCH_SIZE,
+		num_epochs=None,
+		shuffle=True
+	)
+
+	est.train(
+		input_fn=train_input_fn,
+		steps=2000
+	)
