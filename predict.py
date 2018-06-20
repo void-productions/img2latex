@@ -1,14 +1,13 @@
 #!/usr/bin/env python
 
-import sys
-sys.path.append("src")
-
-from constants import CHARS
-import classifier
-from constants import CLASSIFIER_INPUT_SHAPE
-import extract
 import os
-import misc
+import sys
+
+from img2latex.constants import CHARS, CLASSIFIER_INPUT_SHAPE
+import img2latex.classifier as classifier
+import img2latex.extract as extract
+import img2latex.misc as misc
+
 
 if len(sys.argv) != 2:
 	print("requires one <dataset> argument")

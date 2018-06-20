@@ -2,3 +2,4 @@ tensorflow
 opencv-python
 ruamel.yaml
 matplotlib
+numpy

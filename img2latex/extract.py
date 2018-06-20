@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import os
 
-from constants import CHARS_REV
+from img2latex.constants import CHARS_REV
 
 from ruamel.yaml import YAML
 from ruamel.yaml.scanner import ScannerError

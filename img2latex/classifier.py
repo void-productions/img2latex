@@ -2,7 +2,7 @@
 
 import tensorflow as tf
 import numpy as np
-from constants import CLASSIFIER_INPUT_SHAPE, CHARS
+from img2latex.constants import CLASSIFIER_INPUT_SHAPE, CHARS
 
 
 MODEL_DIR = "model/classifier"
@@ -92,19 +92,19 @@ est = tf.estimator.Estimator(model_fn, model_dir=MODEL_DIR)
 
 
 def predict(xdata):
-    """
-    :param xdata: np.ndarray of shape (number_of_samples, height, width, depth)
+	"""
+	:param xdata: np.ndarray of shape (number_of_samples, height, width, depth)
 			where number_of_samples is the number of images
 			where height/width is the height/width of the images
 			where depth is the colordepth of the image
-    :type xdata: np.ndarray
+	:type xdata: np.ndarray
 	:return: np.ndarray of shape (number_of_samples,), named ydata
 		for n in range(number_of_samples): CHARS[ydata[n]] == label of xdata[n]
 	:rtype: np.ndarray
-    """
+	"""
 	predict_input_fn = tf.estimator.inputs.numpy_input_fn(
 		x={"x": xdata},
-        shuffle=False
+		shuffle=False
 	)
 
 	return est.predict(
